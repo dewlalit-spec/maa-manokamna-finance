@@ -11,12 +11,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-
     steps:
-      - name: Checkout project
+      - name: Checkout
         uses: actions/checkout@v5
 
       - name: Set up Java 17
@@ -25,17 +21,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
-      - name: Extract Android project
+      - name: Extract project
         run: |
           mkdir source
           unzip -o Maa_Manokamna_Finance_GitHub_Build.zip -d source
 
-      - name: Fix Java and Kotlin compatibility
+      - name: Fix Java and Kotlin versions
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -43,23 +39,22 @@ jobs:
           p = Path("source/app/build.gradle")
           s = p.read_text()
 
-          needle = "    compileSdk 35\n"
-
-          if needle not in s:
-              raise SystemExit("compileSdk 35 not found in app/build.gradle")
-
-          addition = """    compileOptions {
+          if "sourceCompatibility" not in s:
+              s = s.replace(
+                  "    defaultConfig {",
+                  """    compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
               }
               kotlinOptions {
                   jvmTarget = '17'
               }
-          """
+              defaultConfig {""",
+                  1
+              )
 
-          s = s.replace(needle, needle + addition, 1)
           p.write_text(s)
-          print("Java and Kotlin target set to 17")
+          print("Java and Kotlin compatibility configured")
           PY
 
       - name: Set up Gradle
