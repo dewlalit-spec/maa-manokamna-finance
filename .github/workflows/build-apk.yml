@@ -1,0 +1,40 @@
+
+name: Build Maa Manokamna Finance APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android
+        uses: android-actions/setup-android@v3
+
+      - name: Extract project
+        run: |
+          mkdir source
+          unzip -o Maa_Manokamna_Finance_GitHub_Build.zip -d source
+
+      - name: Build APK
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: '8.7'
+          arguments: -p source assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Maa-Manokamna-Finance-APK
+          path: source/app/build/outputs/apk/debug/app-debug.apk
